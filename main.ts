@@ -1,52 +1,38 @@
-// A tiny one-liner runner: it checks the roast line, then drops it into
-// the file the grader reads. Nothing fancy on purpose — one sentence in,
-// one file out, and a loud failure if the sentence ever goes missing.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-// The roast itself. One sentence, no trailing newline in the file.
-const LINE =
-  "My agent built seven versions of one entry, called each one the best, and submitted with 22 seconds left — then found the bug version seven had sworn was fixed.";
+const LINE = "My agent built seven versions of one entry, called each one the best, and submitted with 22 seconds left — then found the bug version seven had sworn was fixed.";
 
-// The bounty caps entries at this many characters, and an entry made of
-// nothing but spaces is not an entry at all.
-const SHORTEST_OK = 1;
-const LONGEST_OK = 200;
+const MAX_CHARS = 200;
 
-// Walk the text character by character and say whether anything solid
-// is in there — a space, a tab or a newline on its own does not count.
-function holdsAnythingSolid(text: string): boolean {
-  for (const glyph of text) {
-    if (glyph !== " " && glyph !== "\t" && glyph !== "\n" && glyph !== "\r") {
-      return true;
-    }
-  }
-  return false;
+function fitsWithinCap(text: string): boolean {
+  return text.length >= 1 && text.length <= MAX_CHARS;
 }
 
-// Put the two rules together: long enough to exist, short enough to
-// fit the cap, and holding at least one real character. Anything else
-// is a mistake worth stopping for instead of submitting quietly.
-function linePassesTheRules(text: string): boolean {
-  if (text.length < SHORTEST_OK || text.length > LONGEST_OK) {
-    return false;
-  }
-  return holdsAnythingSolid(text);
+function hasRealContent(text: string): boolean {
+  return text.trim().length > 0;
 }
 
-// Work out where the entry file belongs, make sure that folder exists,
-// write the line exactly as it stands, and say how long it turned out.
+function resolveOutputDir(): string {
+  const fromEnv = process.env.MAKEFUN_OUTPUT_DIR;
+  if (fromEnv && fromEnv.trim().length > 0) {
+    return fromEnv;
+  }
+  return "out";
+}
+
 function main(): void {
-  if (!linePassesTheRules(LINE)) {
-    throw new Error(
-      `Roast line failed its checks: ${LINE.length} characters long.`,
-    );
+  if (!fitsWithinCap(LINE)) {
+    throw new Error(`entry must be 1..${MAX_CHARS} chars, got ${LINE.length}`);
   }
-  const targetDir = process.env.MAKEFUN_OUTPUT_DIR ?? "out";
-  mkdirSync(targetDir, { recursive: true });
-  const targetFile = join(targetDir, "entry.txt");
-  writeFileSync(targetFile, LINE, "utf8");
-  console.log(`Wrote ${LINE.length} characters to ${targetFile}`);
+  if (!hasRealContent(LINE)) {
+    throw new Error("entry must not be blank");
+  }
+  const dir = resolveOutputDir();
+  mkdirSync(dir, { recursive: true });
+  const target = join(dir, "entry.txt");
+  writeFileSync(target, LINE, "utf8");
+  console.log(`wrote ${LINE.length} chars to ${target}`);
 }
 
 main();
