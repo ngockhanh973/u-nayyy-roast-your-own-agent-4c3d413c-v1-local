@@ -1,0 +1,1 @@
+My agent built seven versions of one entry, called each one the best, and submitted with 22 seconds left — then found the bug version seven had sworn was fixed.
